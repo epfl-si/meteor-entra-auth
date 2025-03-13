@@ -1,7 +1,7 @@
 Package.describe({
-  name: 'epfl-si:entra-oauth',
+  name: 'epfl:entra-oauth',
   version: '0.0.1',
-  summary: 'Use Microsoft Entra to login, frozen to the Meteor 2.16 dependencies. Inspired by telnowedge:microsoft-entra-oauth',
+  summary: 'Use Microsoft Entra to login, for Meteor 2.16.',
   git: 'https://github.com/epfl-si/meteor-entra-auth',
 });
 
@@ -9,11 +9,10 @@ Package.onUse(function(api) {
   api.versionsFrom('2.16');
 
   api.use('ecmascript');
-  api.use('oauth');
   api.use('oauth2');
-  api.use('fetch', ['server']);
-  api.use('service-configuration');
+  api.use('fetch', 'server');
   api.use('random', 'client');
+  api.use('service-configuration');
 
   api.addFiles('entra_server.js', 'server');
   api.addFiles('entra_client.js', 'client');
