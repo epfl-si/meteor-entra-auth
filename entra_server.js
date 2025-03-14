@@ -30,7 +30,7 @@ const getServiceDataFromTokens = async (tokens) => {
       ...new Error(`Failed to fetch tokeninfo from Entra. ${err.message}`),
       response: err.response,
     };
-  };
+  }
 
 
   try {
@@ -40,7 +40,7 @@ const getServiceDataFromTokens = async (tokens) => {
       ...new Error(`Failed to fetch identity from Entra. ${err.message}`),
       response: err.response,
     };
-  };
+  }
 
   const serviceData = {
     accessToken,
@@ -127,13 +127,11 @@ const getTokens = async (query) => {
     );
   }
 
-  const data = {
+  return {
     accessToken: response.access_token,
     refreshToken: response.refresh_token,
     expiresIn: response.expires_in,
   };
-
-  return data;
 };
 
 const refreshAccessToken = async (props) => {
@@ -173,13 +171,11 @@ const refreshAccessToken = async (props) => {
     );
   }
 
-  const data = {
+  return {
     accessToken: response.access_token,
     refreshToken: response.refresh_token,
     expiresIn: response.expires_in,
   };
-
-  return data;
 }
 
 const getIdentity = async (accessToken) => {
