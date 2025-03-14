@@ -61,14 +61,6 @@ const getServiceDataFromTokens = async (tokens) => {
   return { serviceData };
 };
 
-// Accounts.setAdditionalFindUserOnExternalLogin(async (props) => {
-//   const {serviceName, serviceData, options} = props;
-//
-//   return Meteor.users.findOneAsync({ _id: options.userId });
-// });
-
-
-// options used by setAdditionalFindUserOnExternalLogin
 Accounts.registerLoginHandler(async (request) => {
   if (request.EntraSignIn !== true) {
     return;
