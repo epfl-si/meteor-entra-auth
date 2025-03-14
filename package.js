@@ -1,6 +1,6 @@
 Package.describe({
   name: 'epfl:entra-oauth',
-  version: '0.0.3',
+  version: '0.0.4',
   summary: 'Use Microsoft Entra to login, for Meteor 2.16.',
   git: 'https://github.com/epfl-si/meteor-entra-auth',
 });
