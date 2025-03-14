@@ -1,18 +1,21 @@
 import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
 
+
 Entra.whitelistedFields = [
-  "businessPhones",
-  "displayName",
-  "givenName",
-  "id",
-  "jobTitle",
-  "mail",
-  "mobilePhone",
-  "officeLocation",
-  "preferredLanguage",
-  "surname",
-  "userPrincipalName",
+  //'@odata.context',  // this value needs some parsing before including.
+                       // is 'https://graph.microsoft.com/v1.0/$metadata#users/$entity'
+  'businessPhones',  // array
+  'displayName',
+  'givenName',
+  'jobTitle',
+  'mail',
+  'mobilePhone',  // personally, null
+  'officeLocation',
+  'preferredLanguage',  // personally, null
+  'surname',
+  'userPrincipalName',  // personally, looks like the same value as 'mail'
+  'id',  // GUID
 ];
 
 const getServiceDataFromTokens = async (tokens) => {
@@ -43,15 +46,10 @@ const getServiceDataFromTokens = async (tokens) => {
     accessToken,
     scope: scopes,
     expiresAt: tokens?.expiresIn ? Date.now() + 1000 * parseInt(tokens.expiresIn, 10) : null,
-    ...Entra.whitelistedFields.reduce((acc, x) => {
-      if (!identity?.[x]) {
-        return acc;
-      }
-
-      acc[x] = identity[x];
-
-      return acc;
-    }, []),
+    // Keep only whitelisted fields and values with a value
+    ...Object.fromEntries(
+      Object.entries(identity).filter( ( [ key, value ] ) => Entra.whitelistedFields.includes(key) && value )
+    ),
     // only set the token in serviceData if it's there. this ensures
     // that we don't lose old ones (since we only get this on the first
     // log in attempt)
