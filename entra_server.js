@@ -95,13 +95,8 @@ Accounts.registerLoginHandler(async (request) => {
 
   return Accounts.updateOrCreateUserFromExternalService(
     'entra',
-    {
-      ...result.serviceData,
-    },
-    {
-      ...result.options,
-      userId: Meteor.userId(),
-    }
+    result.serviceData,
+    result.options,
   );
 });
 
