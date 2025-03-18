@@ -2,21 +2,37 @@ import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
 
 
-Entra.whitelistedFields = [
-  //'@odata.context',  // this value needs some parsing before including.
-                       // is 'https://graph.microsoft.com/v1.0/$metadata#users/$entity'
-  'businessPhones',  // array
-  'displayName',
-  'givenName',
-  'jobTitle',
-  'mail',
-  'mobilePhone',  // personally, null
-  'officeLocation',
-  'preferredLanguage',  // personally, null
-  'surname',
-  'userPrincipalName',  // personally, looks like the same value as 'mail'
-  'id',  // GUID
-];
+/**
+ * Which fields are wanted from Graph. Use
+ * service configuration 'fields' if available.
+ */
+const wantedFields = await (async () => {
+  const config = await ServiceConfiguration.configurations.findOneAsync({
+    service: 'entra',
+  });
+
+  if (config && config.fields) {
+    return config.fields
+  } else {
+    return [
+      'id',  // GUID
+      'employeeId',  // sciper
+      'displayName',
+      'givenName',
+      'mail',
+      'surname',
+    ];
+    // e.g. of some of the others values
+      //'@odata.context',  // this value needs some parsing before including.
+      // is 'https://graph.microsoft.com/v1.0/$metadata#users/$entity'
+      // 'jobTitle',
+      // 'businessPhones',  // array
+      // 'userPrincipalName',  // personally, looks like the same value as 'mail'
+      // 'mobilePhone',  // personally, null
+      // 'officeLocation',
+      // 'preferredLanguage',  // personally, null
+  }
+})()
 
 const getServiceDataFromTokens = async (tokens) => {
   const { accessToken } = tokens;
@@ -31,7 +47,6 @@ const getServiceDataFromTokens = async (tokens) => {
       response: err.response,
     };
   }
-
 
   try {
     identity = await getIdentity(accessToken);
@@ -48,7 +63,7 @@ const getServiceDataFromTokens = async (tokens) => {
     expiresAt: tokens?.expiresIn ? Date.now() + 1000 * parseInt(tokens.expiresIn, 10) : null,
     // Keep only whitelisted fields and values with a value
     ...Object.fromEntries(
-      Object.entries(identity).filter( ( [ key, value ] ) => Entra.whitelistedFields.includes(key) && value )
+      Object.entries(identity).filter( ( [ key, value ] ) => wantedFields.includes(key) && value )
     ),
     // only set the token in serviceData if it's there. this ensures
     // that we don't lose old ones (since we only get this on the first
@@ -183,7 +198,7 @@ const getIdentity = async (accessToken) => {
 
   try {
     const request = await OAuth._fetch(
-      'https://graph.microsoft.com/v1.0/me',
+      `https://graph.microsoft.com/v1.0/me?$select=${ wantedFields.join(',') }`,
       'GET',
       {
         headers: {
