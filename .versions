@@ -20,7 +20,7 @@ ecmascript-runtime@0.8.3
 ecmascript-runtime-client@0.12.2
 ecmascript-runtime-server@0.11.1
 ejson@1.1.4
-epfl:entra-oauth@0.0.4
+epfl:entra-oauth@0.0.5
 facts-base@1.0.2
 fetch@0.1.5
 geojson-utils@1.0.12
