@@ -34,10 +34,7 @@ Entra.requestCredential = async (
 
   const credentialToken = Random.secret();
 
-  const scopes = [
-    'https://graph.microsoft.com/.default',
-    ...(options.requestPermissions || []),
-  ];
+  const scopes = options.requestPermissions || ['https://graph.microsoft.com/.default'];
 
   const loginStyle = OAuth._loginStyle('entra', config, options);
 

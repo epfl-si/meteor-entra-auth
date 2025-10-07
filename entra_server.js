@@ -1,43 +1,22 @@
 import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
+import { getConfig } from './config'
 
-
-/**
- * Which fields are wanted from Graph. Use
- * service configuration 'fields' if available.
- */
-const wantedFields = await (async () => {
-  const config = await ServiceConfiguration.configurations.findOneAsync({
-    service: 'entra',
-  });
-
-  if (config && config.fields) {
-    return config.fields
-  } else {
-    return [
-      'id',  // GUID
-      'employeeId',  // sciper
-      'displayName',
-      'givenName',
-      'mail',
-      'surname',
-    ];
-    // e.g. of some of the others values
-      //'@odata.context',  // this value needs some parsing before including.
-      // is 'https://graph.microsoft.com/v1.0/$metadata#users/$entity'
-      // 'jobTitle',
-      // 'businessPhones',  // array
-      // 'userPrincipalName',  // personally, looks like the same value as 'mail'
-      // 'mobilePhone',  // personally, null
-      // 'officeLocation',
-      // 'preferredLanguage',  // personally, null
-  }
-})()
 
 const getServiceDataFromTokens = async (tokens) => {
-  const { accessToken } = tokens;
+  const { idToken, accessToken } = tokens;
   let scopes;
   let identity;
+
+  try {
+    identity = await getIdentity(idToken);
+    debugger;
+  } catch (err) {
+    throw {
+      ...new Error(`Failed to fetch identity from Entra. ${err.message}`),
+      response: err.response,
+    };
+  }
 
   try {
     scopes = await getScopes(accessToken);
@@ -48,23 +27,13 @@ const getServiceDataFromTokens = async (tokens) => {
     };
   }
 
-  try {
-    identity = await getIdentity(accessToken);
-  } catch (err) {
-    throw {
-      ...new Error(`Failed to fetch identity from Entra. ${err.message}`),
-      response: err.response,
-    };
-  }
-
   const serviceData = {
-    accessToken,
+    id: identity.uniqueid,
+    ...identity,
+    idToken: idToken,
+    accessToken: accessToken,
     scope: scopes,
     expiresAt: tokens?.expiresIn ? Date.now() + 1000 * parseInt(tokens.expiresIn, 10) : null,
-    // Keep only whitelisted fields and values with a value
-    ...Object.fromEntries(
-      Object.entries(identity).filter( ( [ key, value ] ) => wantedFields.includes(key) && value )
-    ),
     // only set the token in serviceData if it's there. this ensures
     // that we don't lose old ones (since we only get this on the first
     // log in attempt)
@@ -107,16 +76,11 @@ Accounts.registerLoginHandler(async (request) => {
 
 // returns an object containing:
 // - accessToken
+// - idToken
 // - expiresIn: lifetime of token in seconds
 // - refreshToken, if this is the first authorization request
-const getTokens = async (query) => {
-  const config = await ServiceConfiguration.configurations.findOneAsync({
-    service: 'entra',
-  });
-
-  if (!config) {
-    throw new ServiceConfiguration.ConfigError();
-  }
+const fetchTokens = async (query) => {
+  const config = await getConfig();
 
   const content = new URLSearchParams({
     code: query.code,
@@ -135,7 +99,6 @@ const getTokens = async (query) => {
   });
 
   const response = await request.json();
-
   if (response.error) {
     throw new Meteor.Error(
       `Failed to complete OAuth handshake with Entra. ${response.error}`
@@ -143,6 +106,7 @@ const getTokens = async (query) => {
   }
 
   return {
+    idToken: response.id_token,
     accessToken: response.access_token,
     refreshToken: response.refresh_token,
     expiresIn: response.expires_in,
@@ -152,13 +116,7 @@ const getTokens = async (query) => {
 const refreshAccessToken = async (props) => {
   const { accessToken, refreshToken } = props;
 
-  const config = await ServiceConfiguration.configurations.findOneAsync({
-    service: 'entra',
-  });
-
-  if (!config) {
-    throw new ServiceConfiguration.ConfigError();
-  }
+  const config = await getConfig();
 
   const content = new URLSearchParams({
     client_id: config.clientId,
@@ -187,33 +145,29 @@ const refreshAccessToken = async (props) => {
   }
 
   return {
+    idToken: response.id_token,
     accessToken: response.access_token,
     refreshToken: response.refresh_token,
     expiresIn: response.expires_in,
   };
 }
 
-const getIdentity = async (accessToken) => {
-  let response;
-
+const getIdentity = async (idToken) => {
+  let identity;
   try {
-    const request = await OAuth._fetch(
-      `https://graph.microsoft.com/v1.0/me?$select=${ wantedFields.join(',') }`,
-      'GET',
-      {
-        headers: {
-          Accept: 'application/json',
-          Authorization: accessToken
-        },
-      }
-    );
+    identity = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
 
-    response = await request.json();
+    // remove not-so-interesting values at this point
+    const {
+      aio, aud, exp, iat, iss, nbf, rh,
+      sub, tid, uti, ver,
+      ...interestingValues
+    } = identity
+
+    return interestingValues;
   } catch (e) {
     throw new Meteor.Error(e.reason);
   }
-
-  return response;
 };
 
 const getScopes = async (accessToken) => {
@@ -228,7 +182,7 @@ const getScopes = async (accessToken) => {
   return json.scp.split(' ');
 };
 
-const getServiceData = async (query) => getServiceDataFromTokens(await getTokens(query));
+const getServiceData = async (query) => getServiceDataFromTokens(await fetchTokens(query));
 OAuth.registerService('entra', 2, null, getServiceData);
 
 Entra.retrieveCredential = (credentialToken, credentialSecret) =>
