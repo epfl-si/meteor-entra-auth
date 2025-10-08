@@ -1,9 +1,11 @@
+import debug_ from 'debug'
 import jwt from 'jsonwebtoken';
 
 import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
 import { getConfig } from './config'
 
+const debug = debug_('meteor-packages:entra-auth:server')
 
 const getServiceDataFromTokens = async (tokens) => {
   const { idToken, accessToken } = tokens;
@@ -11,8 +13,9 @@ const getServiceDataFromTokens = async (tokens) => {
   let identity;
 
   try {
+    debug(`Decoding identities in id_token...`);
     identity = await getIdentity(idToken);
-    debugger;
+    debug(`Identity: ${ JSON.stringify(identity, undefined, 2) }`);
   } catch (err) {
     throw {
       ...new Error(`Failed to fetch identity from Entra. ${err.message}`),
@@ -21,7 +24,9 @@ const getServiceDataFromTokens = async (tokens) => {
   }
 
   try {
+    debug(`Decoding scopes in access_token...`);
     scopes = await getScopes(accessToken);
+    debug(`Scopes: ${ JSON.stringify(scopes, undefined, 2) }`);
   } catch (err) {
     throw {
       ...new Error(`Failed to fetch tokeninfo from Entra. ${err.message}`),

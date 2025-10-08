@@ -1,6 +1,6 @@
 Package.describe({
   name: 'epfl:entra-oauth',
-  version: '0.0.6',
+  version: '0.0.7',
   summary: 'Use Microsoft Entra to login',
   git: 'https://github.com/epfl-si/meteor-entra-auth',
 });
@@ -16,6 +16,7 @@ Package.onUse(function(api) {
   api.use('service-configuration');
 
   Npm.depends({
+    debug: '4.4.3',
     jsonwebtoken: '9.0.2',
   });
 

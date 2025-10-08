@@ -1,9 +1,7 @@
-## Use
-See https://github.com/epfl-si/meteor-account-entra
+See https://github.com/epfl-si/meteor-account-entra for this package usage.
 
-## Things to better know
-
-- Entra only allows http as Redirect URIs URL. Better put a way to redirect https to http in front of your Meteor app.
+## Debug
+Add to your env. `DEBUG=meteor-packages:entra-auth:server`
 
 ## References
 - https://atmospherejs.com/telnowedge/microsoft-entra-oauth
