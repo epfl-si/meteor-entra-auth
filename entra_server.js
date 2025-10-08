@@ -1,16 +1,23 @@
 import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
 import { getConfig } from './config'
+import debug_ from 'debug';
 
+const debug = debug_("entra-oauth");
 
 const getServiceDataFromTokens = async (tokens) => {
+  const tokensAbridged = Object.keys(tokens)
+    .map((tok) => `"${tok}": ...`)
+    .join(", ");
+
+  const debugBanner = `getServiceDataFromTokens(tokens = {${tokensAbridged}})`;
   const { idToken, accessToken } = tokens;
   let scopes;
   let identity;
 
   try {
     identity = await getIdentity(idToken);
-    debugger;
+    debug(`${debugBanner}: identity = ${JSON.stringify(identity)}`);
   } catch (err) {
     throw {
       ...new Error(`Failed to fetch identity from Entra. ${err.message}`),
@@ -20,6 +27,7 @@ const getServiceDataFromTokens = async (tokens) => {
 
   try {
     scopes = await getScopes(accessToken);
+    debug(`${debugBanner}: identity = ${JSON.stringify(identity)}`);
   } catch (err) {
     throw {
       ...new Error(`Failed to fetch tokeninfo from Entra. ${err.message}`),
@@ -40,10 +48,12 @@ const getServiceDataFromTokens = async (tokens) => {
     ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
   };
 
+  debug(`${debugBanner}: returning ${JSON.stringify(serviceData)}`);
   return { serviceData };
 };
 
 Accounts.registerLoginHandler(async (request) => {
+  const debugbanner = 'Accounts.registerLoginHandler callback';
   if (request.EntraSignIn !== true) {
     return;
   }
@@ -52,6 +62,7 @@ Accounts.registerLoginHandler(async (request) => {
     request.credentialToken,
     request.credentialSecret
   );
+  debug(`${debugBanner}: retreived credential is ${result}`);
 
   if (!result) {
     return {
@@ -67,6 +78,7 @@ Accounts.registerLoginHandler(async (request) => {
     throw result;
   }
 
+  debug(`${debugBanner}: calling Accounts.updateOrCreateUserFromExternalService("entra", ${JSON.stringify(result.serviceData)}, ${JSON.stringify(result.options)})`);
   return Accounts.updateOrCreateUserFromExternalService(
     'entra',
     result.serviceData,
@@ -154,6 +166,9 @@ const refreshAccessToken = async (props) => {
 
 const getIdentity = async (idToken) => {
   let identity;
+
+  const debugBanner = "getIdentity()";
+  debug(`${debugBanner}: idToken is ${idToken}`);
   try {
     identity = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
 
@@ -164,6 +179,7 @@ const getIdentity = async (idToken) => {
       ...interestingValues
     } = identity
 
+    debug(`${debugBanner}: returning ${JSON.stringify(interestingValues)}`);
     return interestingValues;
   } catch (e) {
     throw new Meteor.Error(e.reason);
@@ -173,8 +189,10 @@ const getIdentity = async (idToken) => {
 const getScopes = async (accessToken) => {
   let json;
 
+  const debugBanner = "getScopes()";
   try {
     json = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString());
+    debug(`${debugBanner}: parsed ${JSON.stringify(json)}`);
   } catch (err) {
     throw new Meteor.Error(err.reason);
   }
