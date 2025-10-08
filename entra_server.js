@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+
 import Entra from './namespace.js';
 import { Accounts } from 'meteor/accounts-base';
 import { getConfig } from './config'
@@ -153,9 +155,8 @@ const refreshAccessToken = async (props) => {
 }
 
 const getIdentity = async (idToken) => {
-  let identity;
   try {
-    identity = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
+    const identity = jwt.decode(idToken);
 
     // remove not-so-interesting values at this point
     const {

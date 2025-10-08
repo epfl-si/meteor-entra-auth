@@ -15,6 +15,10 @@ Package.onUse(function(api) {
   api.use('random', 'client');
   api.use('service-configuration');
 
+  Npm.depends({
+    jsonwebtoken: '9.0.2',
+  });
+
   api.addFiles('entra_server.js', 'server');
   api.addFiles('entra_client.js', 'client');
   api.addFiles('config.js', 'server');
