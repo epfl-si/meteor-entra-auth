@@ -23,3 +23,7 @@ Package.onUse(function(api) {
 
   api.export('Entra');
 });
+
+Npm.depends({
+  debug: '4.4.3'
+});
